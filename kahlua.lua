@@ -5,17 +5,17 @@
 
 __classmetatables = {}
 
----@param value any
+---@param value string | number | table
 ---@param multiline string?
 ---@param indent string?
 ---@return string
 function serialize(value, multiline, indent) end
 
 ---@param s string
----@return any
+---@return string | number | table
 function deserialize(s) end
 
----@param value any
+---@param value string | number | table
 ---@return string
 function pp(value) end
 
@@ -23,6 +23,7 @@ function pp(value) end
 ---@param level integer?
 ---@param maxLines integer?
 ---@param maxLevel integer?
+---@return string
 function debugstacktrace(thread, level, maxLines, maxLevel) end
 
 ---@param stream Reader | InputStream
