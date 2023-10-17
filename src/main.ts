@@ -2,15 +2,22 @@ import fs from 'fs'
 import path from 'path'
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
+import { Rosetta } from 'pz-rosetta-ts/lib/asledgehammer/rosetta/Rosetta'
 
 import { AnnotateArgs } from './types'
 import { annotate } from './annotator'
 import { parse } from './parser'
+import { analyze } from './analyzer'
 
-import { Rosetta } from 'pz-rosetta-ts/lib/asledgehammer/rosetta/Rosetta'
+
+interface AnalyzeArgs {
+    in: string
+    out?: string
+    verbose?: boolean
+}
+
 
 const annotateFiles = async (options: AnnotateArgs) => {
-
     const rosetta = new Rosetta()
 
     try {
@@ -92,9 +99,34 @@ const annotateFiles = async (options: AnnotateArgs) => {
     }
 }
 
+const analyzeFiles = async (args: AnalyzeArgs) => {
+    await analyze({
+        inputDirectory: path.resolve(args.in),
+        outputDirectory: args.out ? path.resolve(args.out) : undefined,
+        verbose: args.verbose ?? false,
+    })
+}
+
 yargs(hideBin(process.argv))
     .version('0.0.0')
     .scriptName('pz-lua-stubgen')
+    .command('analyze', 'Analyze the files in a given directory',
+        (yargs: yargs.Argv) => {
+            return yargs
+                .option('in', { type: 'string', alias: 'i', required: true })
+                .option('out', { type: 'string', alias: 'o' })
+                .option('verbose', { type: 'boolean', alias: 'v' })
+                .check(args => {
+                    const inDir = path.resolve(args.in)
+                    if (!fs.existsSync(inDir)) {
+                        return 'Input directory does not exist.'
+                    }
+
+                    return true
+                })
+        },
+        analyzeFiles
+    )
     .command('annotate', 'Annotate the files in a given directory',
         (yargs: yargs.Argv) => {
             return yargs
@@ -114,5 +146,6 @@ yargs(hideBin(process.argv))
         },
         annotateFiles
     )
+    .demandCommand()
     .parseAsync()
     .catch(e => console.error(e))
