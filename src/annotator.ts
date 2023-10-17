@@ -239,7 +239,7 @@ const annotateMemberFunction = (
             )
         }
         if (rosettaObj.notes != undefined && rosettaObj.notes.length !== 0) {
-            out.push('\n--- ' + rosettaObj.notes)
+            out.push('\n---' + rosettaObj.notes)
         }
         if (rosettaParamCount !== 0) {
             out.push('\n---')
@@ -316,7 +316,7 @@ const annotateClass = (cls: LuaClass, filename: string, args: AnnotateArgs, out:
             }
 
             if (rosettaLuaClass.notes != undefined && rosettaLuaClass.notes.length !== 0) {
-                out.push(`\n--- ${rosettaLuaClass.notes}`)
+                out.push(`\n---${rosettaLuaClass.notes}`)
             }
         }
         out.push(`\n---@class ${cls.name}`)
@@ -361,7 +361,7 @@ const annotateClass = (cls: LuaClass, filename: string, args: AnnotateArgs, out:
         }
     }
 
-    if (fieldCount > 0 && !args['strict-fields']) {
+    if (fieldCount > 0 && !args.strictFields) {
         // ensure non-strict fields
         out.push('\n---@field [any] any')
     }

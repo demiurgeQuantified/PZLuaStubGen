@@ -54,13 +54,13 @@ const annotateFiles = async (options: AnnotateArgs) => {
                 content = await file.readFile('utf-8')
                 await file.close()
             } catch (e) {
-                errors.push(`Failed to read file: ${fullPath}`)
+                errors.push(`Failed to read '${fullPath}': ${e}`)
                 continue
             }
 
             const parsed = parse(content)
             if (!parsed.success) {
-                errors.push(`Failed to parse file: ${fullPath}`)
+                errors.push(`Failed to parse '${fullPath}': ${parsed.error}`)
                 continue
             }
 
@@ -76,7 +76,7 @@ const annotateFiles = async (options: AnnotateArgs) => {
         }
     }
 
-    if (options['include-kahlua']) {
+    if (options.includeKahlua) {
         const outputPath = path.join(outDir, '__kahlua.lua')
 
         try {
@@ -94,7 +94,7 @@ const annotateFiles = async (options: AnnotateArgs) => {
 
 yargs(hideBin(process.argv))
     .version('0.0.0')
-    .scriptName('pz-luadoc')
+    .scriptName('pz-lua-stubgen')
     .command('annotate', 'Annotate the files in a given directory',
         (yargs: yargs.Argv) => {
             return yargs

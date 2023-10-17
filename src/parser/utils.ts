@@ -6,9 +6,8 @@ export const sanitizeLua = (lua: string): string => {
     // based on PipeWrench-Modeler
     lua = lua.replace(numericRegexp, '$1$2')
 
-    while (lua.indexOf('break;') !== -1) {
-        lua = lua.replace('break;', 'break ')
-    }
+    // ISZoneDisplay edge case
+    lua = lua.replace(/\\%/g, ' %')
 
     return lua
 }

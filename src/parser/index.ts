@@ -163,7 +163,7 @@ const parseMethodBody = (ctx: ParseContext, cls: string, statements: ast.Stateme
                 }
             } else if (statement.type === 'LocalStatement' && !baseType) {
                 // check for instance initialization to determine base type
-                if (statement.variables.length !== 1) continue 
+                if (statement.variables.length !== 1) continue
                 if (statement.init.length !== 1) continue
                 if (!selfSet?.has(statement.variables[0].name)) continue
 
@@ -430,7 +430,7 @@ export const parse = (input: string): ParseResult => {
     try {
         const tree = ast.parse(input, {
             comments: false,
-            luaVersion: '5.1',
+            luaVersion: '5.2',
         })
 
         const ctx = new ParseContext()
