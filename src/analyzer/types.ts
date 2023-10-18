@@ -2,6 +2,15 @@ import type ast from 'luaparse'
 import type { LuaBlock } from './lua-block'
 import type { LuaFile } from './lua-file'
 
+export type LuaGameSubdirectory = 'client' | 'server' | 'shared'
+export type LuaAssignmentType =
+    | 'local'
+    | 'global'
+    | 'local-reassign'
+    | 'set-field'
+    | 'parameter'
+    | 'generic-for'
+    | 'numeric-for'
 export type LuaBlockNode =
     | ast.Chunk
     | ast.FunctionDeclaration
@@ -14,8 +23,6 @@ export type LuaBlockNode =
     | ast.DoStatement
     | ast.RepeatStatement
 export type LuaCallExpression = ast.CallExpression | ast.StringCallExpression | ast.TableCallExpression
-export type LuaSubdirectory = 'client' | 'server' | 'shared'
-export type LuaAssignmentType = 'local' | 'global' | 'local-reassign' | 'set-field' | 'parameter' | 'generic-for' | 'numeric-for'
 export type LuaLHS = ast.Identifier | ast.MemberExpression | ast.IndexExpression
 export type LuaRHS = ast.Expression | undefined
 export type LuaFileRecord = Record<string, LuaFile>

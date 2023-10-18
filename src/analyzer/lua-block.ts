@@ -11,17 +11,20 @@ import type {
     LuaLocal,
     LuaRHS
 } from './types'
+import { Analyzer } from '.'
 
 export class LuaBlock implements LuaElementBase<'block'> {
     type: 'block'
-    private node: LuaBlockNode
-    private parent?: LuaBlock
-    private children: LuaBlock[]
-    private locals: Record<string, LuaLocal>
-    private elements: LuaElement[]
-    private returns: ast.ReturnStatement[]
+    protected analyzer: Analyzer
+    protected node: LuaBlockNode
+    protected parent?: LuaBlock
+    protected children: LuaBlock[]
+    protected locals: Record<string, LuaLocal>
+    protected elements: LuaElement[]
+    protected returns: ast.ReturnStatement[]
 
-    constructor(node: LuaBlockNode, parent?: LuaBlock) {
+    constructor(node: LuaBlockNode, analyzer: Analyzer, parent?: LuaBlock) {
+        this.analyzer = analyzer
         this.type = 'block'
         this.node = node
         this.children = []
@@ -31,7 +34,7 @@ export class LuaBlock implements LuaElementBase<'block'> {
 
         switch (node.type) {
             case 'FunctionDeclaration':
-                this.addBlockLocals(node.parameters, [], 'parameter')
+                this.addBlockLocals(node.parameters, [], 'parameter', node.identifier?.type === 'MemberExpression')
                 if (parent && node.isLocal && node.identifier?.type === 'Identifier') {
                     parent.addLocalAssignment([node.identifier], [node], this.getLocal(node.identifier.name))
                 }
@@ -49,14 +52,15 @@ export class LuaBlock implements LuaElementBase<'block'> {
         }
     }
 
-    static getFileIdentifier(name: string): string {
-        if (name.endsWith('.lua')) name = name.slice(0, -4)
-        return name.replace(/[\\.]/g, '/')
-    }
-
     // TODO: remove
     prepareForDebug() {
         delete this.parent
+
+        //@ts-ignore
+        delete this.node
+
+        //@ts-ignore
+        delete this.analyzer
 
         for (const child of this.children) {
             child.prepareForDebug()
@@ -69,8 +73,15 @@ export class LuaBlock implements LuaElementBase<'block'> {
         this.elements.push(child)
     }
 
-    addBlockLocals(expressions: (ast.Identifier | ast.VarargLiteral)[], rhs: LuaRHS[], type: LuaAssignmentType) {
-        const expr = []
+    addBlockLocals(expressions: (ast.Identifier | ast.VarargLiteral)[], rhs: LuaRHS[], type: LuaAssignmentType, addSelf?: boolean) {
+        const expr: ast.Identifier[] = []
+        if (addSelf) {
+            expr.push({
+                type: 'Identifier',
+                name: 'self',
+            })
+        }
+
         for (const param of expressions) {
             if (param.type === 'VarargLiteral') continue
             expr.push(param)
@@ -97,6 +108,17 @@ export class LuaBlock implements LuaElementBase<'block'> {
     }
 
     addLocalAssignment(lhs: ast.Identifier[], rhs: LuaRHS[], existingLocal?: LuaLocal) {
+        if (this.analyzer.pass === 'dependency-resolution') {
+            for (const ident of lhs) {
+                this.locals[ident.name] = {
+                    name: ident.name,
+                    assignments: []
+                }
+
+                return
+            }
+        }
+
         const assignment: LuaAssignment = {
             type: 'assignment',
             assignTypes: lhs.map(_ => 'local'),
@@ -119,7 +141,6 @@ export class LuaBlock implements LuaElementBase<'block'> {
         }
 
         this.elements.push(assignment)
-        return assignment
     }
 
     /**
@@ -146,18 +167,23 @@ export class LuaBlock implements LuaElementBase<'block'> {
 
             const local = this.getLocal(left.name)
             if (local) {
-                local.assignments.push(assignment)
                 assignment.assignTypes[i] = 'local-reassign'
+                if (this.analyzer.pass !== 'dependency-resolution') {
+                    local.assignments.push(assignment)
+                }
             } else {
                 file.addGlobalSet(left.name)
             }
         }
 
-        this.elements.push(assignment)
-        return assignment
+        if (this.analyzer.pass !== 'dependency-resolution') {
+            this.elements.push(assignment)
+        }
     }
 
     addCall(expression: ast.CallExpression) {
+        if (this.analyzer.pass === 'dependency-resolution') return
+
         const call: LuaCall = {
             type: 'call',
             expression: expression.base,
@@ -165,10 +191,10 @@ export class LuaBlock implements LuaElementBase<'block'> {
         }
 
         this.elements.push(call)
-        return call
     }
 
     addReturn(statement: ast.ReturnStatement) {
+        if (this.analyzer.pass === 'dependency-resolution') return
         this.returns.push(statement)
     }
 
@@ -185,16 +211,12 @@ export class LuaBlock implements LuaElementBase<'block'> {
         return (ancestor ?? this) as LuaFile
     }
 
-    getBody() {
+    getBody(): ast.Statement[] {
         return this.node.body
     }
 
     getElements() {
         return this.elements
-    }
-
-    getNode() {
-        return this.node
     }
 
     getLocal(name: string) {
